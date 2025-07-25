@@ -1,38 +1,40 @@
 #!/bin/bash
-# Install dotfiles
+#
+# This script creates symlinks from the home directory to any desired dotfiles in this repository.
 
-# Install dependencies
-if command -v apt &> /dev/null; then
-    # Ubuntu/Debian
-    sudo apt update
-    sudo apt install -y zsh git curl xclip xsel
-elif command -v brew &> /dev/null; then
-    # macOS
-    brew install zsh git curl
-fi
+# --- Variables ---
+# The directory where this script is located
+DOTFILES_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# Your home directory
+HOME_DIR=~
 
-# Install Oh My Zsh
-if [ ! -d "$HOME/.oh-my-zsh" ]; then
-    sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-fi
+# --- List of files/folders to symlink ---
+# Add any other files you want to manage here
+files_to_stow=(
+    zshrc
+    p10k.zsh
+    gitconfig
+    # Add other files like 'vimrc', 'tmux.conf', etc.
+)
 
-# Install Powerlevel10k
-if [ ! -d "$HOME/.oh-my-zsh/custom/themes/powerlevel10k" ]; then
-    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git $HOME/.oh-my-zsh/custom/themes/powerlevel10k
-fi
+# --- Create Symlinks ---
+echo "Stowing dotfiles..."
 
-# Install micro
-if ! command -v micro &> /dev/null; then
-    curl https://getmic.ro | bash
-    sudo mv micro /usr/local/bin/
-fi
+for file in "${files_to_stow[@]}"; do
+    source_file="$DOTFILES_DIR/$file"
+    destination_file="$HOME_DIR/.$file" # Note the added '.' prefix here
 
-# Link dotfiles
-ln -sf $(pwd)/zshrc ~/.zshrc
-mkdir -p ~/.config/micro
-ln -sf $(pwd)/micro-config ~/.config/micro
+    # Check if the source file actually exists
+    if [ -e "$source_file" ]; then
+        echo "  -> Symlinking .$file"
+        # Create a symbolic link, forcing overwrite of any existing link/file
+        # -s for symbolic, -f for force, -n to handle links to directories safely
+        ln -sfn "$source_file" "$destination_file"
+    else
+        echo "  -> Warning: Source file '$file' not found in dotfiles directory. Skipping."
+    fi
+done
 
-# Change shell to zsh
-chsh -s $(which zsh)
-
-echo "Dotfiles installed! Restart terminal."
+echo ""
+echo "✅ Dotfiles stowed successfully."
+echo "Please restart your shell (or open a new tab) for changes to take effect."
